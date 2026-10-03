@@ -1,0 +1,36 @@
+{
+  "name": "alvo-api",
+  "version": "0.1.0",
+  "description": "API do Alvo: criação e otimização de currículos e acompanhamento de candidaturas",
+  "private": true,
+  "license": "UNLICENSED",
+  "type": "module",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "build": "nest build",
+    "start": "nest start",
+    "dev": "nest start --watch",
+    "start:prod": "node dist/main",
+    "lint": "oxlint src/",
+    "format": "prettier --write \"src/**/*.ts\""
+  },
+  "dependencies": {
+    "@nestjs/common": "^12.0.1",
+    "@nestjs/core": "^12.0.1",
+    "@nestjs/platform-express": "^12.0.1",
+    "reflect-metadata": "^0.2.2",
+    "rxjs": "^7.8.1"
+  },
+  "devDependencies": {
+    "@nestjs/cli": "^12.0.0",
+    "@nestjs/schematics": "^12.0.0",
+    "@types/express": "^5.0.0",
+    "@types/node": "^24.0.0",
+    "oxlint": "^1.58.0",
+    "prettier": "^3.4.2",
+    "source-map-support": "^0.5.21",
+    "typescript": "^6.0.2"
+  }
+}
