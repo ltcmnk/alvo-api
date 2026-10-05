@@ -3,6 +3,8 @@ import { ConfigService } from '@nestjs/config';
 import { NestFactory } from '@nestjs/core';
 import type { NestExpressApplication } from '@nestjs/platform-express';
 import { AppModule } from './app.module.js';
+import { HttpExceptionFilter } from './common/filters/http-exception.filter.js';
+import { rotaNaoEncontrada } from './common/middlewares/rota-nao-encontrada.middleware.js';
 
 const PORTA_PADRAO = 3001;
 const FRONTEND_PADRAO = 'http://localhost:5173';
@@ -28,6 +30,11 @@ async function bootstrap(): Promise<void> {
   app.useGlobalPipes(
     new ValidationPipe({ whitelist: true, transform: true, stopAtFirstError: true }),
   );
+  app.useGlobalFilters(new HttpExceptionFilter());
+
+  // init antes do use: o handler de 404 precisa entrar depois de todas as rotas do Nest
+  await app.init();
+  app.use(rotaNaoEncontrada);
 
   const porta = Number(config.get('PORT', PORTA_PADRAO));
   await app.listen(porta);
