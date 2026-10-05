@@ -1,5 +1,16 @@
-import { BadRequestException, Controller, Get, Param, ParseIntPipe } from '@nestjs/common';
+import {
+  BadRequestException,
+  Body,
+  Controller,
+  Get,
+  HttpCode,
+  HttpStatus,
+  Param,
+  ParseIntPipe,
+  Post,
+} from '@nestjs/common';
 import { CurriculosService } from './curriculos.service.js';
+import { CreateCurriculoDto } from './dto/create-curriculo.dto.js';
 import type { Curriculo } from './interfaces/curriculo.interface.js';
 
 // Mensagem em português para id inválido (o padrão do Nest é em inglês)
@@ -21,5 +32,12 @@ export class CurriculosController {
   @Get(':id')
   buscarPorId(@Param('id', idValido) id: number): Curriculo {
     return this.curriculosService.buscarPorId(id);
+  }
+
+  /** POST /api/curriculos — 201 com o currículo criado, 400 se faltar nome ou cargoAlvo. */
+  @Post()
+  @HttpCode(HttpStatus.CREATED)
+  criar(@Body() dados: CreateCurriculoDto): Curriculo {
+    return this.curriculosService.criar(dados);
   }
 }
