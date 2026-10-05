@@ -1,6 +1,8 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
+import { CurriculosModule } from './curriculos/curriculos.module.js';
 import { HealthModule } from './health/health.module.js';
+import { VagasModule } from './vagas/vagas.module.js';
 
 /**
  * Módulo raiz da API (no modelo Express do requisito, equivale ao src/app.js).
@@ -11,6 +13,8 @@ import { HealthModule } from './health/health.module.js';
     // isGlobal: qualquer módulo lê o .env sem precisar importar o ConfigModule de novo
     ConfigModule.forRoot({ isGlobal: true }),
     HealthModule,
+    CurriculosModule,
+    VagasModule,
   ],
 })
 export class AppModule {}
