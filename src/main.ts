@@ -23,7 +23,9 @@ async function bootstrap(): Promise<void> {
   // Só o endereço do frontend pode chamar a API pelo navegador
   app.enableCors({
     origin: config.get<string>('FRONTEND_URL', FRONTEND_PADRAO),
-    methods: ['GET', 'POST', 'PATCH', 'DELETE'],
+    methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE'],
+    // Sem isto o navegador esconde o nome do arquivo exportado (curriculo-fulano.pdf)
+    exposedHeaders: ['Content-Disposition'],
   });
 
   // whitelist descarta campos fora do DTO; stopAtFirstError devolve uma mensagem por campo
