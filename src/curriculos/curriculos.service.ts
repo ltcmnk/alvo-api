@@ -1,10 +1,8 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
+import { pontuarAts } from '../ats/pontuacao.js';
 import { CURRICULOS_MOCK } from './data/curriculos.mock.js';
 import type { CreateCurriculoDto } from './dto/create-curriculo.dto.js';
 import type { ConteudoCurriculo, Curriculo } from './interfaces/curriculo.interface.js';
-
-const PONTUACAO_BASE = 40;
-const PONTOS_POR_CRITERIO = 12;
 
 /** Preenche as listas que o cliente pode omitir, para o resto da API nunca lidar com undefined. */
 export function completarConteudo(dados: CreateCurriculoDto): ConteudoCurriculo {
@@ -21,27 +19,13 @@ export function completarConteudo(dados: CreateCurriculoDto): ConteudoCurriculo 
   };
 }
 
-/**
- * Pontua a completude do currículo (0–100). Provisória: a nota ATS por critérios
- * (src/ats/pontuacao.ts) substitui este cálculo no fim desta branch.
- */
-function pontuacaoProvisoria(conteudo: ConteudoCurriculo): number {
-  const criterios = [
-    Boolean(conteudo.email),
-    Boolean(conteudo.resumo),
-    conteudo.formacoes.length > 0,
-    conteudo.experiencias.length > 0,
-    conteudo.habilidades.length >= 3,
-  ];
-  return PONTUACAO_BASE + criterios.filter(Boolean).length * PONTOS_POR_CRITERIO;
-}
-
 @Injectable()
 export class CurriculosService {
-  // Cópia profunda do mock: os testes manuais não alteram o arquivo de dados original
+  // Cópia profunda do mock: os testes manuais não alteram o arquivo de dados original.
+  // A pontuação é recalculada para seguir sempre a mesma regra dos currículos novos.
   private readonly curriculos: Curriculo[] = structuredClone(CURRICULOS_MOCK).map((curriculo) => ({
     ...curriculo,
-    pontuacao: pontuacaoProvisoria(curriculo),
+    pontuacao: pontuarAts(curriculo).total,
   }));
 
   /**
@@ -68,20 +52,48 @@ export class CurriculosService {
   /**
    * Cria um currículo e guarda em memória até a API reiniciar.
    * @param dados - Corpo já validado pelo ValidationPipe.
-   * @returns O currículo criado, com id, pontuação e data.
+   * @returns O currículo criado, com id, pontuação ATS e data.
    */
   criar(dados: CreateCurriculoDto): Curriculo {
+    const novoCurriculo = this.montar(this.gerarProximoId(), dados);
+    this.curriculos.push(novoCurriculo);
+    return novoCurriculo;
+  }
+
+  /**
+   * Substitui o conteúdo de um currículo (edição pelo editor do site).
+   * @throws NotFoundException quando o id não existe.
+   */
+  atualizar(id: number, dados: CreateCurriculoDto): Curriculo {
+    const indice = this.curriculos.indexOf(this.buscarPorId(id));
+    const atual = this.curriculos[indice];
+    const atualizado = this.montar(id, { ...dados, tipo: dados.tipo ?? atual.tipo });
+    this.curriculos[indice] = atualizado;
+    return atualizado;
+  }
+
+  /**
+   * Remove um currículo.
+   * @throws NotFoundException quando o id não existe.
+   */
+  remover(id: number): void {
+    this.curriculos.splice(this.curriculos.indexOf(this.buscarPorId(id)), 1);
+  }
+
+  private montar(id: number, dados: CreateCurriculoDto): Curriculo {
     const conteudo = completarConteudo(dados);
-    const novoCurriculo: Curriculo = {
+    return {
       ...conteudo,
-      id: Math.max(0, ...this.curriculos.map((item) => item.id)) + 1,
+      id,
       tipo: dados.tipo ?? 'base',
       vagaAlvo: dados.vagaAlvo,
       origemId: dados.origemId,
-      pontuacao: pontuacaoProvisoria(conteudo),
+      pontuacao: pontuarAts(conteudo).total,
       atualizadoEm: new Date().toISOString(),
     };
-    this.curriculos.push(novoCurriculo);
-    return novoCurriculo;
+  }
+
+  private gerarProximoId(): number {
+    return Math.max(0, ...this.curriculos.map((item) => item.id)) + 1;
   }
 }

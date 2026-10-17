@@ -2,14 +2,20 @@ import {
   BadRequestException,
   Body,
   Controller,
+  Delete,
   Get,
   HttpCode,
   HttpStatus,
   Param,
   ParseIntPipe,
   Post,
+  Put,
 } from '@nestjs/common';
-import { CurriculosService } from './curriculos.service.js';
+import { analisarLeituraAts, montarDocumento } from '../ats/documento.js';
+import type { Documento, LeituraAts } from '../ats/documento.js';
+import { pontuarAts } from '../ats/pontuacao.js';
+import type { PontuacaoAts } from '../ats/pontuacao.js';
+import { CurriculosService, completarConteudo } from './curriculos.service.js';
 import { CreateCurriculoDto } from './dto/create-curriculo.dto.js';
 import type { Curriculo } from './interfaces/curriculo.interface.js';
 
@@ -39,5 +45,35 @@ export class CurriculosController {
   @HttpCode(HttpStatus.CREATED)
   criar(@Body() dados: CreateCurriculoDto): Curriculo {
     return this.curriculosService.criar(dados);
+  }
+
+  /**
+   * POST /api/curriculos/previa-ats — prévia do documento final, como um ATS o lê e a nota ATS.
+   * Não salva nada: recebe o currículo no corpo porque o formulário mostra a prévia enquanto você digita.
+   */
+  @Post('previa-ats')
+  @HttpCode(HttpStatus.OK)
+  previaAts(
+    @Body() dados: CreateCurriculoDto,
+  ): LeituraAts & { documento: Documento; pontuacao: PontuacaoAts } {
+    const conteudo = completarConteudo(dados);
+    return {
+      ...analisarLeituraAts(conteudo),
+      documento: montarDocumento(conteudo),
+      pontuacao: pontuarAts(conteudo),
+    };
+  }
+
+  /** PUT /api/curriculos/:id — 200 com o currículo atualizado, 404 se não existir. */
+  @Put(':id')
+  atualizar(@Param('id', idValido) id: number, @Body() dados: CreateCurriculoDto): Curriculo {
+    return this.curriculosService.atualizar(id, dados);
+  }
+
+  /** DELETE /api/curriculos/:id — 204 sem corpo, 404 se não existir. */
+  @Delete(':id')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  remover(@Param('id', idValido) id: number): void {
+    this.curriculosService.remover(id);
   }
 }
