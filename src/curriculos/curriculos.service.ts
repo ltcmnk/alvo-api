@@ -1,15 +1,32 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
+import { pontuarAts } from '../ats/pontuacao.js';
 import { CURRICULOS_MOCK } from './data/curriculos.mock.js';
 import type { CreateCurriculoDto } from './dto/create-curriculo.dto.js';
-import type { Curriculo } from './interfaces/curriculo.interface.js';
+import type { ConteudoCurriculo, Curriculo } from './interfaces/curriculo.interface.js';
 
-const PONTUACAO_BASE = 40;
-const PONTOS_POR_CRITERIO = 12;
+/** Preenche as listas que o cliente pode omitir, para o resto da API nunca lidar com undefined. */
+export function completarConteudo(dados: CreateCurriculoDto): ConteudoCurriculo {
+  return {
+    ...dados,
+    experiencias: dados.experiencias ?? [],
+    formacoes: dados.formacoes ?? [],
+    projetos: dados.projetos ?? [],
+    habilidades: dados.habilidades ?? [],
+    competencias: dados.competencias ?? [],
+    idiomas: dados.idiomas ?? [],
+    certificacoes: dados.certificacoes ?? [],
+    atividades: dados.atividades ?? [],
+  };
+}
 
 @Injectable()
 export class CurriculosService {
-  // Cópia profunda do mock: assim os testes manuais não alteram o arquivo de dados original
-  private readonly curriculos: Curriculo[] = structuredClone(CURRICULOS_MOCK);
+  // Cópia profunda do mock: os testes manuais não alteram o arquivo de dados original.
+  // A pontuação é recalculada para seguir sempre a mesma regra dos currículos novos.
+  private readonly curriculos: Curriculo[] = structuredClone(CURRICULOS_MOCK).map((curriculo) => ({
+    ...curriculo,
+    pontuacao: pontuarAts(curriculo).total,
+  }));
 
   /**
    * Lista os currículos do mais recente para o mais antigo.
@@ -33,41 +50,50 @@ export class CurriculosService {
   }
 
   /**
-   * Cria um currículo do tipo "base" e guarda em memória até a API reiniciar.
+   * Cria um currículo e guarda em memória até a API reiniciar.
    * @param dados - Corpo já validado pelo ValidationPipe.
-   * @returns O currículo criado, com id, pontuação e data.
+   * @returns O currículo criado, com id, pontuação ATS e data.
    */
   criar(dados: CreateCurriculoDto): Curriculo {
-    const novoCurriculo: Curriculo = {
-      ...dados,
-      id: this.gerarProximoId(),
-      tipo: 'base',
-      pontuacao: this.calcularPontuacaoInicial(dados),
-      experiencias: dados.experiencias ?? [],
-      habilidades: dados.habilidades ?? [],
-      atualizadoEm: new Date().toISOString(),
-    };
+    const novoCurriculo = this.montar(this.gerarProximoId(), dados);
     this.curriculos.push(novoCurriculo);
     return novoCurriculo;
   }
 
-  private gerarProximoId(): number {
-    return Math.max(0, ...this.curriculos.map((item) => item.id)) + 1;
+  /**
+   * Substitui o conteúdo de um currículo (edição pelo editor do site).
+   * @throws NotFoundException quando o id não existe.
+   */
+  atualizar(id: number, dados: CreateCurriculoDto): Curriculo {
+    const indice = this.curriculos.indexOf(this.buscarPorId(id));
+    const atual = this.curriculos[indice];
+    const atualizado = this.montar(id, { ...dados, tipo: dados.tipo ?? atual.tipo });
+    this.curriculos[indice] = atualizado;
+    return atualizado;
   }
 
   /**
-   * Pontua a completude do currículo (0–100). É provisória: a pontuação de
-   * aderência ATS feita por IA substitui este cálculo nas próximas sprints.
+   * Remove um currículo.
+   * @throws NotFoundException quando o id não existe.
    */
-  private calcularPontuacaoInicial(dados: CreateCurriculoDto): number {
-    const criterios = [
-      Boolean(dados.email),
-      Boolean(dados.resumo),
-      Boolean(dados.formacao),
-      (dados.experiencias?.length ?? 0) > 0,
-      (dados.habilidades?.length ?? 0) >= 3,
-    ];
-    const atendidos = criterios.filter(Boolean).length;
-    return PONTUACAO_BASE + atendidos * PONTOS_POR_CRITERIO;
+  remover(id: number): void {
+    this.curriculos.splice(this.curriculos.indexOf(this.buscarPorId(id)), 1);
+  }
+
+  private montar(id: number, dados: CreateCurriculoDto): Curriculo {
+    const conteudo = completarConteudo(dados);
+    return {
+      ...conteudo,
+      id,
+      tipo: dados.tipo ?? 'base',
+      vagaAlvo: dados.vagaAlvo,
+      origemId: dados.origemId,
+      pontuacao: pontuarAts(conteudo).total,
+      atualizadoEm: new Date().toISOString(),
+    };
+  }
+
+  private gerarProximoId(): number {
+    return Math.max(0, ...this.curriculos.map((item) => item.id)) + 1;
   }
 }

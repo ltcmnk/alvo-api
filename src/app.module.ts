@@ -2,6 +2,7 @@ import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { CurriculosModule } from './curriculos/curriculos.module.js';
 import { HealthModule } from './health/health.module.js';
+import { IaModule } from './ia/ia.module.js';
 import { VagasModule } from './vagas/vagas.module.js';
 
 /**
@@ -15,6 +16,7 @@ import { VagasModule } from './vagas/vagas.module.js';
     HealthModule,
     CurriculosModule,
     VagasModule,
+    IaModule,
   ],
 })
 export class AppModule {}
