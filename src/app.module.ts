@@ -1,8 +1,8 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { CurriculosModule } from './curriculos/curriculos.module.js';
-import { DocumentosModule } from './documentos/documentos.module.js';
 import { HealthModule } from './health/health.module.js';
+import { IaModule } from './ia/ia.module.js';
 import { VagasModule } from './vagas/vagas.module.js';
 
 /**
@@ -15,8 +15,8 @@ import { VagasModule } from './vagas/vagas.module.js';
     ConfigModule.forRoot({ isGlobal: true }),
     HealthModule,
     CurriculosModule,
-    DocumentosModule,
     VagasModule,
+    IaModule,
   ],
 })
 export class AppModule {}
