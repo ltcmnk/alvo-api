@@ -4,13 +4,23 @@ import {
   IsArray,
   IsIn,
   IsNotEmpty,
+  IsOptional,
   IsString,
   MaxLength,
   ValidateNested,
 } from 'class-validator';
 import { CreateCurriculoDto } from '../../curriculos/dto/create-curriculo.dto.js';
+import { IDS_PROVEDOR } from '../../ia/provedores.js';
+import type { IdProvedor } from '../../ia/provedores.js';
 import { FORMATOS } from '../exportacao.js';
 import type { Formato } from '../exportacao.js';
+
+/** Campos de texto de POST /api/documentos/ler (vêm junto com o arquivo, em multipart). */
+export class LerDocumentoDto {
+  @IsOptional()
+  @IsIn(IDS_PROVEDOR, { message: `provedor deve ser: ${IDS_PROVEDOR.join(', ')}` })
+  provedor?: IdProvedor;
+}
 
 /** Corpo de POST /api/documentos/exportar. O currículo vai no corpo: dá para exportar antes de salvar. */
 export class ExportarDto {
