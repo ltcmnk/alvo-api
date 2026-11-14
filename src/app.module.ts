@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
+import { BancoModule } from './banco/banco.module.js';
 import { CurriculosModule } from './curriculos/curriculos.module.js';
 import { HealthModule } from './health/health.module.js';
 import { IaModule } from './ia/ia.module.js';
@@ -13,6 +14,7 @@ import { VagasModule } from './vagas/vagas.module.js';
   imports: [
     // isGlobal: qualquer módulo lê o .env sem precisar importar o ConfigModule de novo
     ConfigModule.forRoot({ isGlobal: true }),
+    BancoModule,
     HealthModule,
     CurriculosModule,
     VagasModule,
