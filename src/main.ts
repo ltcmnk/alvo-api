@@ -17,12 +17,17 @@ async function bootstrap(): Promise<void> {
   const app = await NestFactory.create<NestExpressApplication>(AppModule);
   const config = app.get(ConfigService);
 
+  // Fecha o banco SQLite com segurança ao encerrar (Ctrl+C)
+  app.enableShutdownHooks();
+
   // Todas as rotas ficam sob /api, que é a base que o frontend usa
   app.setGlobalPrefix('api');
 
   // Só o endereço do frontend pode chamar a API pelo navegador
   app.enableCors({
     origin: config.get<string>('FRONTEND_URL', FRONTEND_PADRAO),
+    // Permite o cookie de sessão nas chamadas do frontend
+    credentials: true,
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE'],
     // Sem isto o navegador esconde o nome do arquivo exportado (curriculo-fulano.pdf)
     exposedHeaders: ['Content-Disposition'],
