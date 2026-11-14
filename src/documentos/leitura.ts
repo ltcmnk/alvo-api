@@ -36,15 +36,22 @@ function tipoDoArquivo(arquivo: ArquivoRecebido): 'pdf' | 'docx' {
 /** Extrai o texto puro do arquivo. */
 export async function extrairTexto(arquivo: ArquivoRecebido): Promise<string> {
   let texto: string;
-  if (tipoDoArquivo(arquivo) === 'pdf') {
-    const parser = new PDFParse({ data: arquivo.buffer });
-    try {
-      texto = (await parser.getText()).text;
-    } finally {
-      await parser.destroy();
+  const tipo = tipoDoArquivo(arquivo);
+  try {
+    if (tipo === 'pdf') {
+      const parser = new PDFParse({ data: arquivo.buffer });
+      try {
+        texto = (await parser.getText()).text;
+      } finally {
+        await parser.destroy();
+      }
+    } else {
+      texto = (await mammoth.extractRawText({ buffer: arquivo.buffer })).value;
     }
-  } else {
-    texto = (await mammoth.extractRawText({ buffer: arquivo.buffer })).value;
+  } catch {
+    throw new BadRequestException(
+      'Não foi possível ler o arquivo. Ele pode estar corrompido ou protegido por senha. Envie outro PDF ou DOCX.',
+    );
   }
   // Remove marcadores de página do pdf-parse ("-- 1 of 2 --") e espaços sobrando
   texto = texto
