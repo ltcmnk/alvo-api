@@ -20,3 +20,8 @@ Thumbs.db
 .vscode/*
 !.vscode/extensions.json
 *.tsbuildinfo
+
+# Banco local e dados pessoais
+dados/
+*.sqlite
+*.sqlite-*
