@@ -17,7 +17,7 @@ export interface ResultadoTrava {
 
 const mesmo = (a: string, b: string) => {
   const [x, y] = [normalizar(a).trim(), normalizar(b).trim()];
-  return x.includes(y) || y.includes(x);
+  return x === y;
 };
 
 function numeros(texto: string): string[] {
@@ -42,12 +42,17 @@ export function aplicarTravas(
 
   const presente = (termo: string) => textoOriginal.includes(` ${normalizar(termo).trim()} `);
   // A IA reescreve só as descrições: cargo, empresa, datas, local e link voltam a ser os originais
+  const mesmaExperiencia = (
+    a: ConteudoCurriculo['experiencias'][number],
+    b: ConteudoCurriculo['experiencias'][number],
+  ) =>
+    mesmo(a.empresa, b.empresa) && mesmo(a.cargo, b.cargo) && (a.inicio ?? '') === (b.inicio ?? '');
   const experiencias = descartar(
     gerado.experiencias,
-    (e) => original.experiencias.some((o) => mesmo(o.empresa, e.empresa)),
+    (e) => original.experiencias.some((o) => mesmaExperiencia(o, e)),
     (e) => `experiência em ${e.empresa}`,
   ).map((e) => {
-    const o = original.experiencias.find((item) => mesmo(item.empresa, e.empresa))!;
+    const o = original.experiencias.find((item) => mesmaExperiencia(item, e))!;
     return { ...o, descricao: e.descricao };
   });
   const projetos = descartar(
