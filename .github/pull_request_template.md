@@ -8,7 +8,7 @@
 3. Acessar ... e verificar que ...
 
 ## Checklist
-- [ ] A base desta PR é a `develop` (ou `qas`/`main` nas PRs especiais da líder)
+- [ ] A base desta PR é a `develop` (ou a `main` na PR de entrega da líder)
 - [ ] Funciona localmente, sem erros no terminal
 - [ ] Sem erros no console do navegador
 - [ ] Testei no celular (375px) e no desktop, sem scroll horizontal
@@ -17,4 +17,4 @@
 - [ ] README atualizado (se mudou algo de setup ou rota)
 
 ## Card no Jira
-<!-- Cole o link do card. -->
+<!-- Cole o link do card. Sem card na sprint: escreva "Sem card no Jira nesta sprint." -->

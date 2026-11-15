@@ -4,9 +4,10 @@ Este é o guia oficial do time, válido para os dois repositórios (`alvo-fronte
 Leia uma vez e consulte sempre que tiver dúvida. Seguir o guia é o que garante a nota de
 organização (20% da avaliação) e evita conflito entre branches.
 
-> **Mudanças em relação ao guia anterior:** a branch de integração se chama `develop` (não `dev`),
-> porque é o nome exigido no requisito da entrega. Os commits seguem Conventional Commits **sem
-> espaço** antes do parêntese (`feat(frontend): ...`). O board é o **Trello**.
+> **Mudanças em relação ao guia anterior:** a branch `qas` foi removida; o fluxo agora é
+> `feature → develop → main`. A branch de integração se chama `develop` (não `dev`), porque é o
+> nome exigido no requisito da entrega. Os commits seguem Conventional Commits **sem espaço**
+> antes do parêntese (`feat(frontend): ...`). O board é o **Jira**.
 
 ## Sumário
 
@@ -14,8 +15,8 @@ organização (20% da avaliação) e evita conflito entre branches.
 2. [Branches](#2-branches)
 3. [Commits](#3-commits)
 4. [Pull Requests e code review](#4-pull-requests-e-code-review)
-5. [DEV to QAS e QAS to MAIN](#5-dev-to-qas-e-qas-to-main)
-6. [Board no Trello](#6-board-no-trello)
+5. [DEV to MAIN](#5-dev-to-main)
+6. [Board no Jira](#6-board-no-jira)
 7. [Fluxo completo do dia a dia](#7-fluxo-completo-do-dia-a-dia)
 8. [Proteção das branches no GitHub (líder)](#8-proteção-das-branches-no-github-líder)
 
@@ -35,22 +36,21 @@ npm install
 cp .env.example .env
 ```
 
-Requisito de ambiente: **Node.js 20.19 ou superior** (`node -v`).
+Requisito de ambiente: **Node.js 22.13 ou superior** (`node -v`); a API usa o SQLite embutido no Node.
 
 ## 2. Branches
 
 ### A regra mais importante
 
-> **Ninguém faz commit ou push direto em `develop`, `qas` ou `main`.**
+> **Ninguém faz commit ou push direto em `develop` ou `main`.**
 > Toda tarefa tem a própria branch, criada a partir da `develop`.
 
 ### Branches fixas
 
 | Branch    | Papel                                                           |
 | --------- | --------------------------------------------------------------- |
-| `main`    | Versão estável, entregue ao professor. Só recebe PR da `qas`.   |
-| `qas`     | Homologação: onde o time testa antes de liberar para a `main`.  |
-| `develop` | Integração: onde as PRs de feature chegam primeiro.             |
+| `main`    | Versão estável, entregue ao professor. Só recebe PR da `develop`. |
+| `develop` | Integração e teste: onde as PRs de feature chegam primeiro.       |
 
 ### Criando a branch da tarefa
 
@@ -134,10 +134,10 @@ refactor(frontend): extrai lógica do formulário para hook useFormCurriculo
 ### Fluxo obrigatório
 
 ```
-feat/... | fix/... | docs/...  ──PR──▶  develop  ──PR──▶  qas  ──PR──▶  main
+feat/... | fix/... | docs/...  ──PR──▶  develop  ──PR──▶  main
 ```
 
-Nada vai de `develop` direto para `main`.
+Nada vai de uma branch de tarefa direto para `main`.
 
 ### Abrindo a PR
 
@@ -152,7 +152,8 @@ Nada vai de `develop` direto para `main`.
    [CHORE] Adiciona variáveis de ambiente
    ```
 5. Preencha o template que aparece na descrição.
-6. Peça review no grupo e mova o card do Trello para **Code Review**.
+6. Peça review no grupo e mova o card do Jira para **Code Review**. Sem card na sprint,
+   escreva "Sem card no Jira nesta sprint." na seção do card.
 
 ### Merge
 
@@ -172,17 +173,16 @@ O que olhar:
 - Tem `console.log` esquecido, código comentado ou arquivo que não devia estar ali (`.env`)?
 - Funções curtas (até ~30 linhas) e comentários explicando **por quê**, não **o quê**?
 
-## 5. DEV to QAS e QAS to MAIN
+## 5. DEV to MAIN
 
-PRs abertas **pela líder** quando um conjunto de features está pronto em `develop`.
-Ela avisa no grupo antes; ninguém mergeia nada em `qas` ou `main` por conta própria.
+PR aberta **pela líder** quando um conjunto de features está pronto e testado em `develop`.
+Ela avisa no grupo antes; ninguém mergeia nada em `main` por conta própria.
 
 ```
-[DEV to QAS] Sprint 1 — semana 1          base: qas   compare: develop
-[QAS to MAIN] Sprint 1 — entrega semana 1  base: main  compare: qas
+[DEV to MAIN] Sprint 2 — entrega final  base: main  compare: develop
 ```
 
-### Checklist da QAS (antes de abrir QAS to MAIN)
+### Checklist antes de abrir DEV to MAIN
 
 - [ ] `npm install && npm run dev` sobe a aplicação seguindo só o README
 - [ ] Navegação entre todas as rotas funciona, incluindo a página 404
@@ -201,7 +201,7 @@ BACKLOG      → tudo o que existe para fazer no projeto
 TO DO        → priorizado para esta sprint
 DOING        → alguém está trabalhando agora
 CODE REVIEW  → PR aberta, aguardando revisão
-QAS          → mergeado em develop/qas, aguardando teste
+TESTE        → mergeado em develop, aguardando teste
 DONE         → testado e mergeado em main
 ```
 
@@ -233,13 +233,13 @@ Labels: `FEAT` `FIX` `DOC` `DESIGN` `CHORE` `REFACTOR` `TEST`.
 6. Abra a PR para develop, preencha o template, avise no grupo
 7. Jira: mova para CODE REVIEW
 8. Após aprovação: Create a merge commit
-9. Jira: mova para QAS; depois do QAS to MAIN, para DONE
+9. Jira: mova para TESTE; depois do DEV to MAIN, para DONE
 ```
 
 ## 8. Proteção das branches no GitHub (líder)
 
 Em cada repositório, **Settings → Branches → Add classic branch protection rule**, uma regra
-para cada branch (`main`, `qas`, `develop`):
+para cada branch (`main`, `develop`):
 
 - [x] Require a pull request before merging
   - [x] Require approvals: **1**
@@ -252,7 +252,7 @@ Em **Settings → General → Pull Requests**: deixe marcado só **Allow merge c
 **Automatically delete head branches**.
 
 Durante a sprint, deixe a `develop` como branch padrão (**Settings → General → Default branch**)
-para as PRs já abrirem apontando para ela e o template de PR funcionar. Depois do `QAS to MAIN`,
+para as PRs já abrirem apontando para ela e o template de PR funcionar. Depois do `DEV to MAIN`,
 volte a branch padrão para `main`, que é o que o professor vai abrir.
 
 ---
