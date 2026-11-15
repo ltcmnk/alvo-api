@@ -56,7 +56,7 @@ const CONFIG: Record<IdProvedor, { nome: string; chave: string; modelo: string; 
       nome: 'Google (Gemini)',
       chave: 'GEMINI_API_KEY',
       modelo: 'GEMINI_MODEL',
-      padrao: 'gemini-flash-latest',
+      padrao: 'gemini-3.5-flash-lite',
     },
   };
 
