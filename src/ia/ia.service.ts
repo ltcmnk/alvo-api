@@ -3,7 +3,7 @@ import { analisarVaga } from '../ats/analise-vaga.js';
 import type { AnaliseVaga } from '../ats/analise-vaga.js';
 import { analisarLeituraAts } from '../ats/documento.js';
 import type { LeituraAts } from '../ats/documento.js';
-import { pontuarAts } from '../ats/pontuacao.js';
+import { pontuarAts, textoDoCurriculo } from '../ats/pontuacao.js';
 import type { PontuacaoAts } from '../ats/pontuacao.js';
 import { completarConteudo } from '../curriculos/curriculos.service.js';
 import type { CreateCurriculoDto } from '../curriculos/dto/create-curriculo.dto.js';
@@ -18,6 +18,7 @@ import {
   relatorioCompatibilidadeSchema,
 } from './schemas.js';
 import type { OtimizacaoIa, RelatorioCompatibilidadeIa } from './schemas.js';
+import { garantirNota } from './garantia-nota.js';
 import { aplicarTravas } from './travas.js';
 
 /** Quem gerou a resposta: um provedor de IA ou as regras do modo demonstração. */
@@ -36,7 +37,7 @@ export type ResultadoOtimizacao = Omit<OtimizacaoIa, 'curriculo'> &
     notaDepois: PontuacaoAts;
     /** % das palavras-chave da vaga presentes antes e depois (só quando há vaga). */
     compatibilidade?: { antes: number; depois: number };
-    travas: { removidos: string[]; numerosParaConferir: string[] };
+    travas: { removidos: string[]; numerosParaConferir: string[]; restaurados: string[] };
     leituraAts: LeituraAts;
   };
 
@@ -119,8 +120,12 @@ export class IaService {
       ...(resposta.curriculo as CreateCurriculoDto),
       cargoAlvo: original.cargoAlvo,
     });
-    const { curriculo, removidos, numerosParaConferir } = aplicarTravas(original, gerado);
+    const travado = aplicarTravas(original, gerado);
     const palavrasVaga = descricaoVaga ? analisarVaga(descricaoVaga).palavrasChave : undefined;
+    const { curriculo, restaurados } = garantirNota(original, travado.curriculo, palavrasVaga);
+    // Seção que voltou ao original não tem mais os números novos da IA
+    const textoFinal = textoDoCurriculo(curriculo).replace(/\s/g, '');
+    const numerosParaConferir = travado.numerosParaConferir.filter((n) => textoFinal.includes(n));
     const [notaAntes, notaDepois] = [
       pontuarAts(original, palavrasVaga),
       pontuarAts(curriculo, palavrasVaga),
@@ -137,7 +142,7 @@ export class IaService {
       compatibilidade: palavrasVaga?.length
         ? { antes: notaPalavras(notaAntes), depois: notaPalavras(notaDepois) }
         : undefined,
-      travas: { removidos, numerosParaConferir },
+      travas: { removidos: travado.removidos, numerosParaConferir, restaurados },
       leituraAts: analisarLeituraAts(curriculo),
     };
   }
