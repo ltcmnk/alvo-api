@@ -1,6 +1,8 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Inject, Injectable, NotFoundException, Scope } from '@nestjs/common';
 import { pontuarAts } from '../ats/pontuacao.js';
-import { CURRICULOS_MOCK } from './data/curriculos.mock.js';
+import { REQUEST } from '@nestjs/core';
+import { Banco } from '../banco/banco.module.js';
+import type { Requisicao } from '../auth/auth.module.js';
 import type { CreateCurriculoDto } from './dto/create-curriculo.dto.js';
 import type { ConteudoCurriculo, Curriculo } from './interfaces/curriculo.interface.js';
 
@@ -19,45 +21,61 @@ export function completarConteudo(dados: CreateCurriculoDto): ConteudoCurriculo 
   };
 }
 
-@Injectable()
+/** Linha da tabela curriculos como o node:sqlite devolve. */
+type LinhaCurriculo = Record<string, string | number | null>;
+
+/**
+ * CRUD de currículos no banco. Escopo REQUEST: cada requisição recebe o id do usuário logado,
+ * e toda consulta filtra por usuario_id, então uma conta nunca enxerga os dados de outra.
+ */
+@Injectable({ scope: Scope.REQUEST })
 export class CurriculosService {
-  // Cópia profunda do mock: os testes manuais não alteram o arquivo de dados original.
-  // A pontuação é recalculada para seguir sempre a mesma regra dos currículos novos.
-  private readonly curriculos: Curriculo[] = structuredClone(CURRICULOS_MOCK).map((curriculo) => ({
-    ...curriculo,
-    pontuacao: pontuarAts(curriculo).total,
-  }));
+  constructor(
+    private readonly banco: Banco,
+    @Inject(REQUEST) private readonly req: Requisicao,
+  ) {}
 
   /**
    * Lista os currículos do mais recente para o mais antigo.
    * @returns Lista de currículos.
    */
   listar(): Curriculo[] {
-    return [...this.curriculos].sort((a, b) => b.atualizadoEm.localeCompare(a.atualizadoEm));
+    return this.banco.db
+      .prepare('SELECT * FROM curriculos WHERE usuario_id = ? ORDER BY atualizado_em DESC')
+      .all(this.req.usuarioId)
+      .map((linha) => this.ler(linha as LinhaCurriculo));
   }
 
   /**
    * Busca um currículo pelo id.
    * @param id - Identificador numérico do currículo.
-   * @throws NotFoundException quando o id não existe (vira 404).
+   * @throws NotFoundException quando o id não existe ou é de outra conta (vira 404).
    */
   buscarPorId(id: number): Curriculo {
-    const curriculo = this.curriculos.find((item) => item.id === id);
-    if (!curriculo) {
+    const linha = this.banco.db
+      .prepare('SELECT * FROM curriculos WHERE id = ? AND usuario_id = ?')
+      .get(id, this.req.usuarioId);
+    if (!linha) {
       throw new NotFoundException(`Currículo ${id} não encontrado`);
     }
-    return curriculo;
+    return this.ler(linha as LinhaCurriculo);
   }
 
   /**
-   * Cria um currículo e guarda em memória até a API reiniciar.
+   * Cria um currículo na conta do usuário.
    * @param dados - Corpo já validado pelo ValidationPipe.
    * @returns O currículo criado, com id, pontuação ATS e data.
    */
   criar(dados: CreateCurriculoDto): Curriculo {
-    const novoCurriculo = this.montar(this.gerarProximoId(), dados);
-    this.curriculos.push(novoCurriculo);
-    return novoCurriculo;
+    if (dados.origemId != null) this.buscarPorId(dados.origemId);
+    const c = this.montar(dados);
+    const resultado = this.banco.db
+      .prepare(
+        `INSERT INTO curriculos (usuario_id, origem_id, tipo, pontuacao, atualizado_em, conteudo)
+         VALUES (?, ?, ?, ?, ?, ?)`,
+      )
+      .run(this.req.usuarioId, c.origemId, c.tipo, c.pontuacao, c.atualizadoEm, c.conteudo);
+    return this.buscarPorId(Number(resultado.lastInsertRowid));
   }
 
   /**
@@ -65,35 +83,49 @@ export class CurriculosService {
    * @throws NotFoundException quando o id não existe.
    */
   atualizar(id: number, dados: CreateCurriculoDto): Curriculo {
-    const indice = this.curriculos.indexOf(this.buscarPorId(id));
-    const atual = this.curriculos[indice];
-    const atualizado = this.montar(id, { ...dados, tipo: dados.tipo ?? atual.tipo });
-    this.curriculos[indice] = atualizado;
-    return atualizado;
+    const atual = this.buscarPorId(id);
+    if (dados.origemId != null) this.buscarPorId(dados.origemId);
+    const c = this.montar({ ...dados, tipo: dados.tipo ?? atual.tipo });
+    this.banco.db
+      .prepare(
+        `UPDATE curriculos SET origem_id = ?, tipo = ?, pontuacao = ?, atualizado_em = ?, conteudo = ?
+         WHERE id = ? AND usuario_id = ?`,
+      )
+      .run(c.origemId, c.tipo, c.pontuacao, c.atualizadoEm, c.conteudo, id, this.req.usuarioId);
+    return this.buscarPorId(id);
   }
 
   /**
-   * Remove um currículo.
+   * Remove um currículo. Candidaturas e versões ligadas a ele ficam, só perdem o vínculo.
    * @throws NotFoundException quando o id não existe.
    */
   remover(id: number): void {
-    this.curriculos.splice(this.curriculos.indexOf(this.buscarPorId(id)), 1);
+    this.buscarPorId(id);
+    this.banco.db
+      .prepare('DELETE FROM curriculos WHERE id = ? AND usuario_id = ?')
+      .run(id, this.req.usuarioId);
   }
 
-  private montar(id: number, dados: CreateCurriculoDto): Curriculo {
-    const conteudo = completarConteudo(dados);
+  /** Calcula a nota ATS e separa o que vira coluna do que vai no JSON. */
+  private montar({ tipo, origemId, ...resto }: CreateCurriculoDto) {
+    const secoes = completarConteudo(resto);
     return {
-      ...conteudo,
-      id,
-      tipo: dados.tipo ?? 'base',
-      vagaAlvo: dados.vagaAlvo,
-      origemId: dados.origemId,
-      pontuacao: pontuarAts(conteudo).total,
+      tipo: tipo ?? 'base',
+      origemId: origemId ?? null,
+      pontuacao: pontuarAts(secoes).total,
       atualizadoEm: new Date().toISOString(),
+      conteudo: JSON.stringify(secoes),
     };
   }
 
-  private gerarProximoId(): number {
-    return Math.max(0, ...this.curriculos.map((item) => item.id)) + 1;
+  private ler(linha: LinhaCurriculo): Curriculo {
+    return {
+      ...JSON.parse(String(linha.conteudo)),
+      id: Number(linha.id),
+      tipo: linha.tipo,
+      pontuacao: Number(linha.pontuacao),
+      origemId: linha.origem_id == null ? undefined : Number(linha.origem_id),
+      atualizadoEm: String(linha.atualizado_em),
+    };
   }
 }

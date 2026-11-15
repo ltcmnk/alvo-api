@@ -57,6 +57,10 @@ export class HttpExceptionFilter implements ExceptionFilter {
     if (status === HttpStatus.NOT_FOUND && mensagem.startsWith('Cannot ')) {
       return { error: 'Rota não encontrada' };
     }
+    // Upload acima do limite do multer ("File too large")
+    if (status === HttpStatus.PAYLOAD_TOO_LARGE) {
+      return { error: 'O arquivo passa do limite de 5 MB' };
+    }
     // Corpo com JSON malformado chega aqui com a mensagem técnica do parser, em inglês
     if (status === HttpStatus.BAD_REQUEST && mensagem.includes('JSON')) {
       return { error: 'O corpo da requisição não é um JSON válido' };

@@ -1,12 +1,12 @@
 {
   "name": "alvo-api",
   "version": "0.1.0",
-  "description": "API do Alvo: criação e otimização de currículos e acompanhamento de candidaturas",
+  "description": "API do Alvo: cria\u00e7\u00e3o e otimiza\u00e7\u00e3o de curr\u00edculos e acompanhamento de candidaturas",
   "private": true,
   "license": "UNLICENSED",
   "type": "module",
   "engines": {
-    "node": ">=20"
+    "node": ">=22.13"
   },
   "scripts": {
     "build": "nest build",
@@ -14,7 +14,8 @@
     "dev": "nest start --watch",
     "start:prod": "node dist/main",
     "lint": "oxlint src/",
-    "format": "prettier --write \"src/**/*.ts\""
+    "format": "prettier --write \"src/**/*.ts\"",
+    "test": "npm run build && node scripts/validar-regras.mjs && node scripts/validar-entrega.mjs"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.129.0",
