@@ -86,6 +86,7 @@ curl http://localhost:3001/api/health
 | `npm run lint` | Verifica o código com oxlint |
 | `npm run format` | Formata o código com Prettier |
 | `npm test` | Compila e roda os testes de regras e os testes HTTP (banco descartável) |
+| `npm run demo` | Com a API rodando, cria a conta `demo@alvo.dev` (senha `AlvoDemo2026!`) com 3 currículos e 4 candidaturas fictícios |
 
 ### Variáveis de ambiente
 
