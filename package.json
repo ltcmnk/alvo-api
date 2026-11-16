@@ -15,6 +15,7 @@
     "start:prod": "node dist/main",
     "lint": "oxlint src/",
     "format": "prettier --write \"src/**/*.ts\"",
+    "demo": "node scripts/criar-demo.mjs",
     "test": "npm run build && node scripts/validar-regras.mjs && node scripts/validar-entrega.mjs"
   },
   "dependencies": {
